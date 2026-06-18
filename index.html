@@ -25,12 +25,13 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-image: url("background.jpg");
+            background-image: url("background.jpg"); /* Fallback */
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
             font-family: 'Cinzel', serif;
             position: relative;
+            transition: background-image 0.5s ease;
         }
 
         /* Camada escura */
@@ -255,6 +256,29 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
+        // ====== FUNDO ALEATÓRIO ======
+        (function() {
+            const backgrounds = [
+                "background1.jpg",
+                "background2.jpg",
+                "background3.jpg",
+                "background4.jpg",
+                "background5.jpg",
+                "background6.jpg"
+            ];
+
+            // Escolhe um índice aleatório
+            const indiceAleatorio = Math.floor(Math.random() * backgrounds.length);
+            const imagemEscolhida = backgrounds[indiceAleatorio];
+
+            // Aplica o fundo no body
+            document.body.style.backgroundImage = `url("${imagemEscolhida}")`;
+
+            // (Opcional) Mostra no console qual imagem foi escolhida
+            console.log(`🎨 Fundo selecionado: ${imagemEscolhida} (${indiceAleatorio + 1}/6)`);
+        })();
+
+        // ====== VÍDEOS ======
         const videos = [
             "ODxpHPiF2IU",
             "1kfxiX5aIZc",
