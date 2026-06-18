@@ -9,7 +9,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="favicon.png">
 
-    <!-- Fonte Cinzel (ADICIONADO) -->
+    <!-- Fonte Cinzel -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
@@ -61,7 +61,7 @@
             opacity: 0.15;
         }
 
-        /* Título (ADICIONADO) */
+        /* Título */
         #titulo {
             text-align: center;
             color: #f0e6d3;
@@ -69,14 +69,13 @@
             font-weight: 700;
             letter-spacing: 4px;
             text-transform: uppercase;
-            
             text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
-            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
             padding-bottom: 10px;
+            transition: all 0.5s ease;
         }
 
         #titulo span {
-            color: #ffd700;
+            color: #f03;
         }
 
         /* Player */
@@ -88,7 +87,7 @@
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
         }
 
-        /* Indicador de status (ADICIONADO) */
+        /* Indicador de status */
         #status {
             text-align: center;
             color: rgba(255, 255, 255, 0.5);
@@ -96,19 +95,90 @@
             margin-top: 12px;
             letter-spacing: 2px;
             font-weight: 400;
+            transition: all 0.5s ease;
         }
 
         #status span {
-            color: #ffd700;
+            color: #f03;
             font-weight: 700;
         }
 
-        /* Responsividade (ADICIONADO) */
+        /* Mensagem de áudio - estilo especial */
+        #status.audio-message {
+            color: #ffd700;
+            font-size: 0.9rem;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        #status.audio-message span {
+            color: #ff6b6b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Título com mensagem de áudio */
+        #titulo.audio-message {
+            color: #ffd700;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        #titulo.audio-message span {
+            color: #ff6b6b;
+        }
+
+        /* ===== BOTÃO DE ÁUDIO MOBILE ===== */
+        #audio-toggle {
+            display: none; /* Escondido por padrão */
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #ffd700, #f0a500);
+            color: #1a1a1a;
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        #audio-toggle:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.6);
+        }
+
+        #audio-toggle:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+
+        #audio-toggle.muted {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff;
+            box-shadow: 0 0 40px rgba(255, 107, 107, 0.4);
+        }
+
+        #audio-toggle.audio-activated {
+            display: none !important; /* Some depois de ativado */
+        }
+
+        /* Responsividade */
         @media (max-width: 768px) {
             #player {
                 width: 90vw;
                 height: calc(90vw * 0.5625);
-                /* proporção 16:9 */
             }
 
             #titulo {
@@ -119,6 +189,18 @@
             #player-container {
                 padding: 12px;
                 width: 95vw;
+            }
+
+            #status.audio-message {
+                font-size: 0.7rem;
+            }
+
+            /* Mostra o botão no mobile */
+            #audio-toggle {
+                display: block;
+                bottom: 70px;
+                padding: 14px 24px;
+                font-size: 1rem;
             }
         }
 
@@ -131,6 +213,23 @@
             #status {
                 font-size: 0.7rem;
             }
+
+            #status.audio-message {
+                font-size: 0.6rem;
+            }
+
+            #audio-toggle {
+                bottom: 60px;
+                padding: 12px 20px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (min-width: 769px) {
+            /* Esconde o botão no desktop */
+            #audio-toggle {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -138,13 +237,18 @@
 <body>
 
     <div id="player-container">
-        <!-- TÍTULO ADICIONADO -->
+        <!-- TÍTULO -->
         <div id="titulo">Roma <span>Invicta</span> TV</div>
 
         <div id="player"></div>
 
-        <!-- STATUS ADICIONADO -->
-        <div id="status">▶ <span>●</span> AO VIVO</div>
+        <!-- STATUS -->
+        <div id="status">▶ <span>●</span> LIVE</div>
+
+        <!-- BOTÃO DE ÁUDIO MOBILE -->
+        <button id="audio-toggle" class="muted">
+            🔊 ENABLE AUDIO
+        </button>
     </div>
 
     <!-- YouTube IFrame API -->
@@ -159,6 +263,10 @@
 
         let indice = 0;
         let player;
+        let mensagemAtiva = false;
+        let tituloOriginal = "Roma Invicta TV";
+        let statusOriginal = '';
+        let somAtivado = false; // Controla se o áudio já foi ativado
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
@@ -166,19 +274,19 @@
                 height: '315',
                 videoId: videos[indice],
                 playerVars: {
-                    autoplay: 1, // ✅ Autoplay ativado
-                    controls: 1, // ✅ Mostra controles
-                    rel: 0, // ✅ Não mostra vídeos relacionados
-                    mute: 1, // 🔇 🔥 ESSE É O SEGREDO!
-                    modestbranding: 1, // Marca d'água pequena
-                    iv_load_policy: 3, // Sem anotações
-                    cc_load_policy: 0, // Sem legendas automáticas
-                    fs: 1, // Tela cheia permitida
-                    playsinline: 1 // Melhor pra mobile
+                    autoplay: 1,
+                    controls: 1,
+                    rel: 0,
+                    mute: 1,
+                    modestbranding: 1,
+                    iv_load_policy: 3,
+                    cc_load_policy: 0,
+                    fs: 1,
+                    playsinline: 1
                 },
                 events: {
                     'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError // Tratamento de erro (ADICIONADO)
+                    'onError': onPlayerError
                 }
             });
         }
@@ -193,23 +301,32 @@
                 player.loadVideoById(videos[indice]);
             }
 
-            // Quando o vídeo começa a tocar (ADICIONADO)
+            // Quando o vídeo começa a tocar
             if (event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('status').innerHTML = '▶ <span>●</span> REPRODUZINDO';
+                if (!mensagemAtiva) {
+                    document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
+                    document.getElementById('status').className = '';
+                    statusOriginal = '▶ <span>●</span> PLAYING';
+                }
             }
 
-            // Quando pausado (ADICIONADO)
+            // Quando pausado
             if (event.data === YT.PlayerState.PAUSED) {
-                document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSADO';
+                if (!mensagemAtiva) {
+                    document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
+                    document.getElementById('status').className = '';
+                    statusOriginal = '⏸ <span>●</span> PAUSED';
+                }
             }
         }
 
-        // Tratamento de erro (ADICIONADO)
         function onPlayerError(event) {
             console.log('Erro no player:', event.data);
-            document.getElementById('status').innerHTML = '⚠️ <span>●</span> ERRO - Próximo vídeo...';
+            if (!mensagemAtiva) {
+                document.getElementById('status').innerHTML = '⚠️ <span>●</span> ERROR - Next video...';
+                document.getElementById('status').className = '';
+            }
 
-            // Tenta carregar o próximo vídeo em caso de erro
             setTimeout(() => {
                 indice++;
                 if (indice >= videos.length) {
@@ -217,6 +334,94 @@
                 }
                 player.loadVideoById(videos[indice]);
             }, 3000);
+        }
+
+        // ====== FUNÇÃO PARA ATIVAR O ÁUDIO (MOBILE) ======
+        function ativarAudio() {
+            if (player && !somAtivado) {
+                // Tenta ativar o som
+                player.unMute();
+                somAtivado = true;
+
+                // Esconde o botão
+                const botao = document.getElementById('audio-toggle');
+                botao.classList.add('audio-activated');
+                botao.style.display = 'none';
+
+                // Mostra mensagem de confirmação no status (rápido)
+                const statusElement = document.getElementById('status');
+                statusElement.innerHTML = '🔊 <span>●</span> AUDIO ENABLED';
+                statusElement.className = 'audio-message';
+
+                // Volta ao normal após 2 segundos
+                setTimeout(() => {
+                    if (!mensagemAtiva) {
+                        statusElement.innerHTML = statusOriginal || '▶ <span>●</span> PLAYING';
+                        statusElement.className = '';
+                    }
+                }, 2000);
+
+                console.log('✅ Áudio ativado no mobile!');
+            }
+        }
+
+        // ====== FUNÇÃO PARA MOSTRAR MENSAGEM DE ÁUDIO ======
+        function mostrarMensagemAudio() {
+            mensagemAtiva = true;
+
+            const statusElement = document.getElementById('status');
+            statusOriginal = statusElement.innerHTML;
+
+            statusElement.innerHTML = '🔊 <span>●</span> ENABLE AUDIO ON PLAYER';
+            statusElement.className = 'audio-message';
+
+            document.title = '🔊 ENABLE AUDIO ON PLAYER';
+
+            const tituloElement = document.getElementById('titulo');
+            tituloElement.innerHTML = '🔊 <span>ENABLE</span> AUDIO';
+            tituloElement.className = 'audio-message';
+
+            // Mostra o botão mobile automaticamente
+            const botao = document.getElementById('audio-toggle');
+            if (window.innerWidth <= 768) {
+                botao.style.display = 'block';
+                botao.classList.add('muted');
+            }
+
+            // Após 15 segundos, volta ao normal
+            setTimeout(() => {
+                voltarAoNormal();
+            }, 15000);
+        }
+
+        // ====== FUNÇÃO PARA VOLTAR AO NORMAL ======
+        function voltarAoNormal() {
+            mensagemAtiva = false;
+
+            const statusElement = document.getElementById('status');
+            statusElement.innerHTML = statusOriginal || '▶ <span>●</span> PLAYING';
+            statusElement.className = '';
+
+            document.title = 'Roma Invicta TV';
+
+            const tituloElement = document.getElementById('titulo');
+            tituloElement.innerHTML = 'Roma <span>Invicta</span> TV';
+            tituloElement.className = '';
+
+            // Se o áudio já foi ativado, esconde o botão
+            if (somAtivado) {
+                const botao = document.getElementById('audio-toggle');
+                botao.style.display = 'none';
+            }
+
+            if (player && player.getPlayerState) {
+                const estado = player.getPlayerState();
+                if (estado === YT.PlayerState.PLAYING) {
+                    statusElement.innerHTML = '▶ <span>●</span> PLAYING';
+                } else if (estado === YT.PlayerState.PAUSED) {
+                    statusElement.innerHTML = '⏸ <span>●</span> PAUSED';
+                }
+            }
         }
 
         // ====== EFEITO DE OCULTAR ======
@@ -236,12 +441,31 @@
         });
 
         // ====== GARANTIR AUTOPLAY (fallback) ======
-        // Se o vídeo não tocar automaticamente, tenta de novo
         setTimeout(() => {
             if (player && player.getPlayerState && player.getPlayerState() === -1) {
                 player.playVideo();
             }
         }, 3000);
+
+        // ====== INICIALIZAR MENSAGEM DE ÁUDIO ======
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                mostrarMensagemAudio();
+            }, 1000);
+        });
+
+        // ====== EVENTO DO BOTÃO MOBILE ======
+        document.getElementById('audio-toggle').addEventListener('click', ativarAudio);
+
+        // ====== DETECTA MUDANÇA DE TAMANHO DA TELA ======
+        window.addEventListener('resize', function() {
+            const botao = document.getElementById('audio-toggle');
+            if (window.innerWidth <= 768 && !somAtivado && mensagemAtiva) {
+                botao.style.display = 'block';
+            } else if (window.innerWidth > 768 || somAtivado) {
+                botao.style.display = 'none';
+            }
+        });
     </script>
 
 </body>
