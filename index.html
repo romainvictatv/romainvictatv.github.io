@@ -1,21 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Teste YouTube</title>
+<meta charset="UTF-8">
+<title>Roma Invicta TV</title>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#player {
+    width: 100vw;
+    height: 100vh;
+}
+</style>
 </head>
+
 <body>
 
-<h1>Teste do Canal</h1>
+<div id="player"></div>
 
-<iframe
-    width="800"
-    height="450"
-    src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-    title="YouTube video player"
-    frameborder="0"
-    allowfullscreen>
-</iframe>
+<script src="https://www.youtube.com/iframe_api"></script>
+
+<script>
+
+const videos = [
+    "ODxpHPiF2IU",
+    "1kfxiX5aIZc",
+    "3z_QAPB3XeA"
+];
+
+let indice = 0;
+let player;
+
+function onYouTubeIframeAPIReady() {
+
+    player = new YT.Player('player', {
+        videoId: videos[indice],
+        playerVars: {
+            autoplay: 1,
+            controls: 1,
+            rel: 0
+        },
+        events: {
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
+function onPlayerStateChange(event) {
+
+    if (event.data == YT.PlayerState.ENDED) {
+
+        indice++;
+
+        if (indice >= videos.length) {
+            indice = 0;
+        }
+
+        player.loadVideoById(videos[indice]);
+    }
+}
+
+</script>
 
 </body>
 </html>
