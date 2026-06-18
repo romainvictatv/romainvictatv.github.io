@@ -133,7 +133,7 @@
 
         /* ===== BOTÃO DE ÁUDIO MOBILE ===== */
         #audio-toggle {
-            display: none;
+            display: none; /* Escondido por padrão */
             position: absolute;
             bottom: 80px;
             left: 50%;
@@ -153,7 +153,6 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             animation: pulse 1.5s ease-in-out infinite;
-            white-space: nowrap; /* Impede quebra de linha */
         }
 
         #audio-toggle:hover {
@@ -172,7 +171,7 @@
         }
 
         #audio-toggle.audio-activated {
-            display: none !important;
+            display: none !important; /* Some depois de ativado */
         }
 
         /* Responsividade */
@@ -196,12 +195,12 @@
                 font-size: 0.7rem;
             }
 
+            /* Mostra o botão no mobile */
             #audio-toggle {
                 display: block;
                 bottom: 70px;
-                padding: 14px 20px;
-                font-size: 0.9rem;
-                letter-spacing: 1px;
+                padding: 14px 24px;
+                font-size: 1rem;
             }
         }
 
@@ -221,22 +220,13 @@
 
             #audio-toggle {
                 bottom: 60px;
-                padding: 12px 16px;
-                font-size: 0.75rem;
-                letter-spacing: 0.5px;
-                white-space: normal; /* Permite quebrar linha em telas muito pequenas */
-            }
-        }
-
-        @media (max-width: 380px) {
-            #audio-toggle {
-                font-size: 0.65rem;
-                padding: 10px 12px;
-                bottom: 50px;
+                padding: 12px 20px;
+                font-size: 0.8rem;
             }
         }
 
         @media (min-width: 769px) {
+            /* Esconde o botão no desktop */
             #audio-toggle {
                 display: none !important;
             }
@@ -255,9 +245,9 @@
         <!-- STATUS -->
         <div id="status">▶ <span>●</span> LIVE</div>
 
-        <!-- BOTÃO DE ÁUDIO MOBILE - TEXTO ATUALIZADO -->
+        <!-- BOTÃO DE ÁUDIO MOBILE -->
         <button id="audio-toggle" class="muted">
-            🔊 Click here to turn on sound
+            🔊 ENABLE AUDIO
         </button>
     </div>
 
@@ -276,7 +266,7 @@
         let mensagemAtiva = false;
         let tituloOriginal = "Roma Invicta TV";
         let statusOriginal = '';
-        let somAtivado = false;
+        let somAtivado = false; // Controla se o áudio já foi ativado
 
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
@@ -302,6 +292,7 @@
         }
 
         function onPlayerStateChange(event) {
+            // Quando o vídeo termina
             if (event.data === YT.PlayerState.ENDED) {
                 indice++;
                 if (indice >= videos.length) {
@@ -310,6 +301,7 @@
                 player.loadVideoById(videos[indice]);
             }
 
+            // Quando o vídeo começa a tocar
             if (event.data === YT.PlayerState.PLAYING) {
                 if (!mensagemAtiva) {
                     document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
@@ -318,6 +310,7 @@
                 }
             }
 
+            // Quando pausado
             if (event.data === YT.PlayerState.PAUSED) {
                 if (!mensagemAtiva) {
                     document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
@@ -343,19 +336,24 @@
             }, 3000);
         }
 
+        // ====== FUNÇÃO PARA ATIVAR O ÁUDIO (MOBILE) ======
         function ativarAudio() {
             if (player && !somAtivado) {
+                // Tenta ativar o som
                 player.unMute();
                 somAtivado = true;
 
+                // Esconde o botão
                 const botao = document.getElementById('audio-toggle');
                 botao.classList.add('audio-activated');
                 botao.style.display = 'none';
 
+                // Mostra mensagem de confirmação no status (rápido)
                 const statusElement = document.getElementById('status');
                 statusElement.innerHTML = '🔊 <span>●</span> AUDIO ENABLED';
                 statusElement.className = 'audio-message';
 
+                // Volta ao normal após 2 segundos
                 setTimeout(() => {
                     if (!mensagemAtiva) {
                         statusElement.innerHTML = statusOriginal || '▶ <span>●</span> PLAYING';
@@ -367,6 +365,7 @@
             }
         }
 
+        // ====== FUNÇÃO PARA MOSTRAR MENSAGEM DE ÁUDIO ======
         function mostrarMensagemAudio() {
             mensagemAtiva = true;
 
@@ -382,17 +381,20 @@
             tituloElement.innerHTML = '🔊 <span>ENABLE</span> AUDIO';
             tituloElement.className = 'audio-message';
 
+            // Mostra o botão mobile automaticamente
             const botao = document.getElementById('audio-toggle');
             if (window.innerWidth <= 768) {
                 botao.style.display = 'block';
                 botao.classList.add('muted');
             }
 
+            // Após 15 segundos, volta ao normal
             setTimeout(() => {
                 voltarAoNormal();
             }, 15000);
         }
 
+        // ====== FUNÇÃO PARA VOLTAR AO NORMAL ======
         function voltarAoNormal() {
             mensagemAtiva = false;
 
@@ -406,6 +408,7 @@
             tituloElement.innerHTML = 'Roma <span>Invicta</span> TV';
             tituloElement.className = '';
 
+            // Se o áudio já foi ativado, esconde o botão
             if (somAtivado) {
                 const botao = document.getElementById('audio-toggle');
                 botao.style.display = 'none';
@@ -421,6 +424,7 @@
             }
         }
 
+        // ====== EFEITO DE OCULTAR ======
         let temporizadorMouse;
         const container = document.getElementById("player-container");
 
@@ -436,20 +440,24 @@
             }, 2000);
         });
 
+        // ====== GARANTIR AUTOPLAY (fallback) ======
         setTimeout(() => {
             if (player && player.getPlayerState && player.getPlayerState() === -1) {
                 player.playVideo();
             }
         }, 3000);
 
+        // ====== INICIALIZAR MENSAGEM DE ÁUDIO ======
         window.addEventListener('load', function() {
             setTimeout(() => {
                 mostrarMensagemAudio();
             }, 1000);
         });
 
+        // ====== EVENTO DO BOTÃO MOBILE ======
         document.getElementById('audio-toggle').addEventListener('click', ativarAudio);
 
+        // ====== DETECTA MUDANÇA DE TAMANHO DA TELA ======
         window.addEventListener('resize', function() {
             const botao = document.getElementById('audio-toggle');
             if (window.innerWidth <= 768 && !somAtivado && mensagemAtiva) {
