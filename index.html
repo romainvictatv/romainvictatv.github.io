@@ -500,6 +500,7 @@
 
         // ====== GET TODAY'S SCHEDULE ======
         const today = new Date().getDay();
+        const todayDate = new Date().toDateString(); // "Thu Jun 18 2026"
         const validSlots = getValidSlots(today);
 
         console.log(`📋 Valid slots for today: ${validSlots.length}`);
@@ -522,6 +523,35 @@
         // Update total counter
         document.getElementById('total-counter').textContent = allVideos.length;
 
+        // ====== SAVE / LOAD RESUME STATE ======
+        const STORAGE_KEY = 'roma_tv_resume';
+
+        function saveProgress(videoIndex, currentTime) {
+            try {
+                const data = {
+                    index: videoIndex,
+                    time: Math.floor(currentTime || 0),
+                    date: todayDate
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                console.log(`💾 Progress saved: video ${videoIndex + 1}, time ${data.time}s, date ${data.date}`);
+            } catch (e) {
+                console.warn('Could not save progress:', e);
+            }
+        }
+
+        function loadProgress() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                return data;
+            } catch (e) {
+                console.warn('Could not load progress:', e);
+                return null;
+            }
+        }
+
         // ====== PLAYER VARIABLES ======
         let currentVideoIndex = 0;
         let player;
@@ -530,14 +560,25 @@
         let soundActivated = false;
         let isTransitioning = false;
         let hasSeeked = false;
+        let resumeTime = 0;
 
         // ====== UPDATE VIDEO COUNTER ======
         function updateCounter() {
             document.getElementById('video-counter').textContent = currentVideoIndex + 1;
         }
 
+        // ====== SAVE PROGRESS ON STATE CHANGE ======
+        function saveCurrentProgress() {
+            if (player && player.getCurrentTime) {
+                const currentTime = player.getCurrentTime();
+                saveProgress(currentVideoIndex, currentTime);
+            } else {
+                saveProgress(currentVideoIndex, 0);
+            }
+        }
+
         // ====== FUNCTION TO LOAD SPECIFIC VIDEO ======
-        function loadVideo(index) {
+        function loadVideo(index, seekTime) {
             if (allVideos.length === 0) {
                 console.warn('⚠️ No videos scheduled for today.');
                 document.getElementById('status').innerHTML = '⏸ <span>●</span> NO CONTENT TODAY';
@@ -555,7 +596,7 @@
             updateCounter();
 
             const videoId = allVideos[currentVideoIndex];
-            const startTime = allStartTimes[currentVideoIndex] || 0;
+            const startTime = seekTime !== undefined ? seekTime : (allStartTimes[currentVideoIndex] || 0);
 
             console.log(`🎬 Loading video ${currentVideoIndex + 1}/${allVideos.length}: ${videoId} (start: ${startTime}s)`);
 
@@ -564,6 +605,14 @@
                 hasSeeked = false;
                 player.loadVideoById(videoId);
                 player.playVideo();
+
+                // If we have a seek time, use it after video loads
+                if (startTime > 0) {
+                    // Will be handled in onPlayerStateChange
+                    resumeTime = startTime;
+                } else {
+                    resumeTime = 0;
+                }
 
                 setTimeout(() => {
                     isTransitioning = false;
@@ -580,11 +629,13 @@
 
         // ====== FUNCTION TO LOAD NEXT VIDEO ======
         function loadNextVideo() {
+            saveCurrentProgress();
             loadVideo(currentVideoIndex + 1);
         }
 
         // ====== FUNCTION TO LOAD PREVIOUS VIDEO ======
         function loadPreviousVideo() {
+            saveCurrentProgress();
             loadVideo(currentVideoIndex - 1);
         }
 
@@ -595,12 +646,41 @@
                 return;
             }
 
-            const firstStartTime = allStartTimes[0] || 0;
+            // Check for saved progress
+            const saved = loadProgress();
+            let startIndex = 0;
+            let startTime = 0;
+
+            if (saved && saved.date === todayDate) {
+                // Same day - restore progress
+                startIndex = Math.min(saved.index, allVideos.length - 1);
+                startTime = saved.time || 0;
+                console.log(`🔄 Restoring progress: video ${startIndex + 1}/${allVideos.length}, time ${startTime}s`);
+            } else if (saved && saved.date !== todayDate) {
+                console.log(`📅 Different day (${saved.date} vs ${todayDate}). Starting from beginning.`);
+                // Different day - start from beginning
+                startIndex = 0;
+                startTime = allStartTimes[0] || 0;
+                // Clear old progress
+                localStorage.removeItem(STORAGE_KEY);
+            } else {
+                // No saved progress
+                startIndex = 0;
+                startTime = allStartTimes[0] || 0;
+            }
+
+            currentVideoIndex = startIndex;
+            updateCounter();
+
+            const videoId = allVideos[startIndex];
+            const finalStartTime = startTime > 0 ? startTime : (allStartTimes[startIndex] || 0);
+
+            console.log(`🎬 Starting with video ${startIndex + 1}/${allVideos.length}: ${videoId} (start: ${finalStartTime}s)`);
 
             player = new YT.Player('player', {
                 width: '560',
                 height: '315',
-                videoId: allVideos[0],
+                videoId: videoId,
                 playerVars: {
                     autoplay: 1,
                     controls: 1,
@@ -611,7 +691,7 @@
                     cc_load_policy: 0,
                     fs: 1,
                     playsinline: 1,
-                    start: firstStartTime
+                    start: finalStartTime
                 },
                 events: {
                     'onStateChange': onPlayerStateChange,
@@ -626,19 +706,33 @@
                 statusOriginal = statusElement.innerHTML;
             }
 
-            updateCounter();
-            console.log(`✅ Player initialized with video 1/${allVideos.length} (start: ${firstStartTime}s)`);
+            // Save progress after video starts
+            setTimeout(() => {
+                saveCurrentProgress();
+            }, 3000);
+
+            console.log(`✅ Player initialized with video ${startIndex + 1}/${allVideos.length} (start: ${finalStartTime}s)`);
         }
 
         // ====== PLAYER STATE CHANGE ======
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
-                const startTime = allStartTimes[currentVideoIndex] || 0;
-
-                if (startTime > 0 && !hasSeeked) {
+                // Handle resume time for manual seeks
+                if (resumeTime > 0 && !hasSeeked) {
                     hasSeeked = true;
-                    player.seekTo(startTime, true);
-                    console.log(`⏩ Seeking to ${startTime}s`);
+                    player.seekTo(resumeTime, true);
+                    console.log(`⏩ Seeking to ${resumeTime}s`);
+                    resumeTime = 0;
+                }
+
+                // If it's the first play, restore saved time
+                if (!hasSeeked && currentVideoIndex === 0) {
+                    const saved = loadProgress();
+                    if (saved && saved.date === todayDate && saved.time > 0) {
+                        hasSeeked = true;
+                        player.seekTo(saved.time, true);
+                        console.log(`⏩ Restoring to saved time: ${saved.time}s`);
+                    }
                 }
 
                 if (!messageActive) {
@@ -651,6 +745,7 @@
 
             if (event.data === YT.PlayerState.ENDED) {
                 console.log('📯 Video ended. Advancing to next...');
+                saveCurrentProgress();
                 loadNextVideo();
             }
 
@@ -673,6 +768,7 @@
             }
 
             setTimeout(() => {
+                saveCurrentProgress();
                 loadNextVideo();
             }, 3000);
         }
@@ -786,6 +882,18 @@
             setTimeout(() => {
                 showAudioMessage();
             }, 1000);
+        });
+
+        // ====== SAVE PROGRESS REGULARLY ======
+        setInterval(() => {
+            if (player && player.getCurrentTime) {
+                saveCurrentProgress();
+            }
+        }, 5000); // Save every 5 seconds
+
+        // ====== SAVE PROGRESS BEFORE PAGE UNLOADS ======
+        window.addEventListener('beforeunload', function() {
+            saveCurrentProgress();
         });
 
         // ====== NAVIGATION BUTTONS ======
