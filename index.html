@@ -866,6 +866,7 @@
         let statusOriginal = '';
         let soundActivated = false;
         let isInitialLoad = true;
+        let hasActiveFilters = false;
 
         // ====== SHUFFLE ======
         function shuffleArray(array) {
@@ -894,61 +895,71 @@
             } catch (e) { return null; }
         }
 
+        // ====== STOP PLAYER ======
+        function stopPlayer() {
+            if (playerReady && player) {
+                player.stopVideo();
+                console.log('⏹️ Player stopped');
+            }
+            document.getElementById('status').innerHTML = '⏸ <span>●</span> NO FILTERS SELECTED';
+            document.getElementById('status').className = '';
+            document.getElementById('video-counter').textContent = '0';
+            document.getElementById('total-counter').textContent = '0';
+        }
+
         // ====== APPLY FILTERS ======
         function applyFilters() {
             const hasCategoryFilter = selectedCategories.size > 0;
             const hasDurationFilter = selectedDuration !== Infinity;
 
-            // Always exclude audiobooks on initial load
-            if (isInitialLoad) {
-                filteredVideos = videoList.filter(v => !v.categories.includes('audiobook'));
-                isInitialLoad = false;
-            } else if (!hasCategoryFilter) {
-                filteredVideos = videoList.filter(video => {
-                    if (hasDurationFilter && !video.categories.includes('audiobook')) {
-                        if (video.durationSeconds > selectedDuration) return false;
-                    }
-                    return true;
-                });
-            } else {
-                filteredVideos = videoList.filter(video => {
-                    const matchesCategory = video.categories.some(cat => selectedCategories.has(cat));
-                    if (!matchesCategory) return false;
-                    if (hasDurationFilter && !video.categories.includes('audiobook')) {
-                        if (video.durationSeconds > selectedDuration) return false;
-                    }
-                    return true;
-                });
-            }
-
-            shuffleArray(filteredVideos);
-            console.log(`📊 Filtered: ${filteredVideos.length} videos`);
-
-            if (filteredVideos.length === 0) {
-                document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS MATCH FILTERS';
-                document.getElementById('video-counter').textContent = '0';
-                document.getElementById('total-counter').textContent = '0';
+            // Se não há categorias selecionadas, para o player
+            if (!hasCategoryFilter) {
+                filteredVideos = [];
+                hasActiveFilters = false;
+                updateUI();
+                stopPlayer();
                 return;
             }
 
-            // Restore saved progress if same day and no category filters active
-            if (selectedCategories.size === 0) {
-                const saved = loadProgress();
-                if (saved && saved.date === todayDate && saved.index < filteredVideos.length) {
-                    currentFilteredIndex = saved.index;
-                    console.log(`🔄 Restoring progress: video ${saved.index + 1}`);
-                } else {
-                    currentFilteredIndex = 0;
+            hasActiveFilters = true;
+
+            // Filtrar vídeos pelas categorias selecionadas
+            filteredVideos = videoList.filter(video => {
+                const matchesCategory = video.categories.some(cat => selectedCategories.has(cat));
+                if (!matchesCategory) return false;
+
+                if (hasDurationFilter && !video.categories.includes('audiobook')) {
+                    if (video.durationSeconds > selectedDuration) return false;
                 }
-            } else {
+
+                return true;
+            });
+
+            // Se não houver vídeos, para o player
+            if (filteredVideos.length === 0) {
+                updateUI();
+                stopPlayer();
+                document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS MATCH FILTERS';
+                return;
+            }
+
+            // Embaralhar
+            shuffleArray(filteredVideos);
+
+            // Verificar se o índice atual é válido
+            if (currentFilteredIndex >= filteredVideos.length) {
                 currentFilteredIndex = 0;
             }
 
+            console.log(`📊 Filtered: ${filteredVideos.length} videos`);
             updateUI();
+
+            // Carregar o primeiro vídeo
             if (playerReady && player) {
                 loadFilteredVideo(currentFilteredIndex);
             } else {
                 window.pendingVideoIndex = currentFilteredIndex;
+                if (!player) initPlayer();
             }
         }
 
@@ -966,7 +977,7 @@
         // ====== LOAD FILTERED VIDEO ======
         function loadFilteredVideo(index) {
             if (filteredVideos.length === 0) {
-                document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS MATCH FILTERS';
+                stopPlayer();
                 return;
             }
             if (index < 0) index = filteredVideos.length - 1;
@@ -991,13 +1002,17 @@
         }
 
         // ====== NAVIGATION ======
-        function loadNext() { if (filteredVideos.length === 0) return;
+        function loadNext() {
+            if (filteredVideos.length === 0) return;
             saveCurrentProgress();
-            loadFilteredVideo(currentFilteredIndex + 1); }
+            loadFilteredVideo(currentFilteredIndex + 1);
+        }
 
-        function loadPrev() { if (filteredVideos.length === 0) return;
+        function loadPrev() {
+            if (filteredVideos.length === 0) return;
             saveCurrentProgress();
-            loadFilteredVideo(currentFilteredIndex - 1); }
+            loadFilteredVideo(currentFilteredIndex - 1);
+        }
 
         function saveCurrentProgress() {
             if (playerReady && player && player.getCurrentTime) {
@@ -1033,8 +1048,11 @@
         // ====== YOUTUBE EVENTS ======
         function onYouTubeIframeAPIReady() {
             console.log('🎬 YouTube API ready');
-            applyFilters();
-            initPlayer();
+            // Inicialmente, sem filtros, não toca nada
+            filteredVideos = [];
+            hasActiveFilters = false;
+            updateUI();
+            stopPlayer();
         }
 
         function onPlayerReady() {
@@ -1051,7 +1069,7 @@
                 }
                 window.pendingVideoIndex = undefined;
             }
-            if (!messageActive) {
+            if (!messageActive && filteredVideos.length > 0) {
                 document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
                 document.getElementById('status').className = '';
                 statusOriginal = '▶ <span>●</span> PLAYING';
@@ -1061,7 +1079,7 @@
 
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
-                if (!messageActive) {
+                if (!messageActive && filteredVideos.length > 0) {
                     document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
                     document.getElementById('status').className = '';
                     statusOriginal = '▶ <span>●</span> PLAYING';
@@ -1157,17 +1175,22 @@
 
         // ====== INIT ======
         window.addEventListener('load', function() {
-            applyFilters();
-            if (!player) initPlayer();
+            // Inicialmente sem filtros ativos
+            filteredVideos = [];
+            hasActiveFilters = false;
+            updateUI();
+            stopPlayer();
             setTimeout(showAudioMessage, 1500);
         });
 
         setInterval(() => {
-            if (playerReady && player && player.getCurrentTime) saveCurrentProgress();
+            if (playerReady && player && player.getCurrentTime && filteredVideos.length > 0) {
+                saveCurrentProgress();
+            }
         }, 5000);
 
         window.addEventListener('beforeunload', () => {
-            if (playerReady && player) saveCurrentProgress();
+            if (playerReady && player && filteredVideos.length > 0) saveCurrentProgress();
         });
 
         // ====== NAVIGATION BUTTONS ======
@@ -1197,12 +1220,13 @@
         document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', function() {
                 const cat = this.dataset.category;
-                if (this.checked) selectedCategories.add(cat);
-                else selectedCategories.delete(cat);
-                // Reset initial load flag so audiobooks can appear if selected
+                if (this.checked) {
+                    selectedCategories.add(cat);
+                } else {
+                    selectedCategories.delete(cat);
+                }
                 isInitialLoad = false;
                 applyFilters();
-                if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
             });
         });
 
@@ -1218,7 +1242,6 @@
             });
             isInitialLoad = false;
             applyFilters();
-            if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
         });
 
         // ====== DURATION FILTER ======
@@ -1231,8 +1254,9 @@
                 selectedDuration = preset.seconds;
                 durationValue.textContent = preset.label;
                 isInitialLoad = false;
-                applyFilters();
-                if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
+                if (selectedCategories.size > 0) {
+                    applyFilters();
+                }
             }
         });
 
@@ -1244,8 +1268,10 @@
             selectedDuration = Infinity;
             durationValue.textContent = '∞ Unlimited';
             isInitialLoad = true;
-            applyFilters();
-            if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
+            filteredVideos = [];
+            hasActiveFilters = false;
+            updateUI();
+            stopPlayer();
         });
 
         window.addEventListener('resize', function() {
