@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-pt">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
@@ -77,22 +77,6 @@
 
         #titulo span {
             color: #dc143c;
-        }
-
-        /* Day indicator */
-        #day-indicator {
-            text-align: center;
-            color: rgba(255, 255, 255, 0.4);
-            font-size: 0.7rem;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            font-weight: 400;
-        }
-
-        #day-indicator span {
-            color: #dc143c;
-            font-weight: 700;
         }
 
         /* Player */
@@ -261,11 +245,6 @@
                 padding: 10px 28px;
                 font-size: 0.8rem;
             }
-
-            #day-indicator {
-                font-size: 0.6rem;
-                letter-spacing: 2px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -293,11 +272,6 @@
                 font-size: 0.7rem;
                 letter-spacing: 1px;
             }
-
-            #day-indicator {
-                font-size: 0.5rem;
-                letter-spacing: 1px;
-            }
         }
 
         @media (min-width: 769px) {
@@ -313,9 +287,6 @@
     <div id="player-container">
         <!-- TITLE -->
         <div id="titulo">Roma <span>Invicta</span> TV</div>
-
-        <!-- DAY INDICATOR -->
-        <div id="day-indicator">📅 <span id="day-name">Loading...</span></div>
 
         <div id="player"></div>
 
@@ -385,17 +356,6 @@
             6: ["", "", "", "", "", ""]
         };
 
-        // Day names
-        const dayNames = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday"
-        ];
-
         // ====== FUNCTION TO FILTER EMPTY PLAYLISTS ======
         function getValidPlaylists(day) {
             const allPlaylists = schedule[day] || [];
@@ -405,12 +365,7 @@
         // ====== GET TODAY'S PLAYLISTS ======
         const today = new Date().getDay();
         const playlistsForToday = getValidPlaylists(today);
-        const dayName = dayNames[today];
 
-        // Show day indicator
-        document.getElementById('day-name').textContent = dayName;
-
-        console.log(`📅 Today is ${dayName}`);
         console.log(`📋 Valid playlists for today: ${playlistsForToday.length}`);
 
         // ====== PLAYER VARIABLES ======
@@ -419,6 +374,7 @@
         let messageActive = false;
         let statusOriginal = '';
         let soundActivated = false;
+        let isTransitioning = false; // Prevent multiple transitions
 
         // ====== FUNCTION TO LOAD NEXT PLAYLIST ======
         function loadNextPlaylist() {
@@ -435,17 +391,23 @@
 
             // Load playlist in player
             if (player) {
+                isTransitioning = true;
                 player.loadPlaylist({
                     list: playlistId,
                     listType: 'playlist'
                 });
                 player.playVideo();
+                
+                // Reset transitioning flag after a short delay
+                setTimeout(() => {
+                    isTransitioning = false;
+                }, 1000);
             }
 
-            // Update status with playlist info
+            // Update status with simple "PLAYING" message
             const statusElement = document.getElementById('status');
             if (!messageActive) {
-                statusElement.innerHTML = `▶ <span>●</span> PLAYLIST ${currentPlaylistIndex + 1}/${playlistsForToday.length}`;
+                statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                 statusElement.className = '';
                 statusOriginal = statusElement.innerHTML;
             }
@@ -453,6 +415,12 @@
 
         // ====== FUNCTION TO ADVANCE TO NEXT PLAYLIST ======
         function advanceToNextPlaylist() {
+            // Prevent multiple simultaneous transitions
+            if (isTransitioning) {
+                console.log('⏳ Transition already in progress, skipping...');
+                return;
+            }
+
             // Move to next playlist
             currentPlaylistIndex++;
 
@@ -500,7 +468,7 @@
             // Update status
             const statusElement = document.getElementById('status');
             if (!messageActive) {
-                statusElement.innerHTML = `▶ <span>●</span> PLAYLIST 1/${playlistsForToday.length}`;
+                statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                 statusElement.className = '';
                 statusOriginal = statusElement.innerHTML;
             }
@@ -519,9 +487,8 @@
             // When video starts playing
             if (event.data === YT.PlayerState.PLAYING) {
                 if (!messageActive) {
-                    // Update status with current playlist info
                     const statusElement = document.getElementById('status');
-                    statusElement.innerHTML = `▶ <span>●</span> PLAYLIST ${currentPlaylistIndex + 1}/${playlistsForToday.length}`;
+                    statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                     statusElement.className = '';
                     statusOriginal = statusElement.innerHTML;
                 }
@@ -568,7 +535,7 @@
 
                 setTimeout(() => {
                     if (!messageActive) {
-                        statusElement.innerHTML = statusOriginal || `▶ <span>●</span> PLAYLIST ${currentPlaylistIndex + 1}/${playlistsForToday.length}`;
+                        statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                         statusElement.className = '';
                     }
                 }, 2000);
@@ -610,7 +577,7 @@
             messageActive = false;
 
             const statusElement = document.getElementById('status');
-            statusElement.innerHTML = statusOriginal || `▶ <span>●</span> PLAYLIST ${currentPlaylistIndex + 1}/${playlistsForToday.length}`;
+            statusElement.innerHTML = '▶ <span>●</span> PLAYING';
             statusElement.className = '';
 
             document.title = 'Roma Invicta TV';
@@ -627,7 +594,7 @@
             if (player && player.getPlayerState) {
                 const state = player.getPlayerState();
                 if (state === YT.PlayerState.PLAYING) {
-                    statusElement.innerHTML = `▶ <span>●</span> PLAYLIST ${currentPlaylistIndex + 1}/${playlistsForToday.length}`;
+                    statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                 } else if (state === YT.PlayerState.PAUSED) {
                     statusElement.innerHTML = '⏸ <span>●</span> PAUSED';
                 }
