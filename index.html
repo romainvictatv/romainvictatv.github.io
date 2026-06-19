@@ -865,8 +865,12 @@
         let messageActive = false;
         let statusOriginal = '';
         let soundActivated = false;
-        let isInitialLoad = true;
         let hasActiveFilters = false;
+
+        // ====== ALL CATEGORIES (excluindo audiobook para a seleção inicial) ======
+        const ALL_CATEGORIES_EXCEPT_AUDIOBOOK = ['prosehistory', 'prosespeech', 'proseepistolary', 'recitedpoetry',
+            'sungpoetry', 'cover', 'musicother'
+        ];
 
         // ====== SHUFFLE ======
         function shuffleArray(array) {
@@ -901,16 +905,11 @@
                 player.stopVideo();
                 console.log('⏹️ Player stopped');
             }
-            document.getElementById('status').innerHTML = '⏸ <span>●</span> NO FILTERS SELECTED';
-            document.getElementById('status').className = '';
-            document.getElementById('video-counter').textContent = '0';
-            document.getElementById('total-counter').textContent = '0';
         }
 
         // ====== APPLY FILTERS ======
         function applyFilters() {
             const hasCategoryFilter = selectedCategories.size > 0;
-            const hasDurationFilter = selectedDuration !== Infinity;
 
             // Se não há categorias selecionadas, para o player
             if (!hasCategoryFilter) {
@@ -918,6 +917,8 @@
                 hasActiveFilters = false;
                 updateUI();
                 stopPlayer();
+                document.getElementById('status').innerHTML = '⏸ <span>●</span> NO FILTERS SELECTED';
+                document.getElementById('status').className = '';
                 return;
             }
 
@@ -928,7 +929,8 @@
                 const matchesCategory = video.categories.some(cat => selectedCategories.has(cat));
                 if (!matchesCategory) return false;
 
-                if (hasDurationFilter && !video.categories.includes('audiobook')) {
+                // Filtro de duração (audiobook ignora)
+                if (selectedDuration !== Infinity && !video.categories.includes('audiobook')) {
                     if (video.durationSeconds > selectedDuration) return false;
                 }
 
@@ -937,9 +939,12 @@
 
             // Se não houver vídeos, para o player
             if (filteredVideos.length === 0) {
+                filteredVideos = [];
+                hasActiveFilters = false;
                 updateUI();
                 stopPlayer();
                 document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS MATCH FILTERS';
+                document.getElementById('status').className = '';
                 return;
             }
 
@@ -1048,11 +1053,27 @@
         // ====== YOUTUBE EVENTS ======
         function onYouTubeIframeAPIReady() {
             console.log('🎬 YouTube API ready');
-            // Inicialmente, sem filtros, não toca nada
-            filteredVideos = [];
-            hasActiveFilters = false;
-            updateUI();
-            stopPlayer();
+
+            // Inicializar com TODAS as categorias (exceto audiobook) selecionadas
+            selectedCategories = new Set(ALL_CATEGORIES_EXCEPT_AUDIOBOOK);
+
+            // Marcar os checkboxes visualmente
+            document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => {
+                const cat = cb.dataset.category;
+                if (selectedCategories.has(cat)) {
+                    cb.checked = true;
+                }
+            });
+
+            applyFilters();
+
+            // Se não tiver vídeos, mostra mensagem
+            if (filteredVideos.length === 0) {
+                document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS AVAILABLE';
+                document.getElementById('status').className = '';
+                document.getElementById('video-counter').textContent = '0';
+                document.getElementById('total-counter').textContent = '0';
+            }
         }
 
         function onPlayerReady() {
@@ -1175,11 +1196,7 @@
 
         // ====== INIT ======
         window.addEventListener('load', function() {
-            // Inicialmente sem filtros ativos
-            filteredVideos = [];
-            hasActiveFilters = false;
-            updateUI();
-            stopPlayer();
+            // A inicialização agora é feita no onYouTubeIframeAPIReady
             setTimeout(showAudioMessage, 1500);
         });
 
@@ -1225,7 +1242,6 @@
                 } else {
                     selectedCategories.delete(cat);
                 }
-                isInitialLoad = false;
                 applyFilters();
             });
         });
@@ -1233,14 +1249,20 @@
         // ====== SELECT ALL ======
         document.getElementById('select-all-btn').addEventListener('click', function() {
             const checkboxes = document.querySelectorAll('.category-item input[type="checkbox"]');
+            // Verifica se todos estão marcados
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+            // Se todos estão marcados, desmarca todos. Senão, marca todos.
             checkboxes.forEach(cb => {
                 cb.checked = !allChecked;
                 const cat = cb.dataset.category;
-                if (cb.checked) selectedCategories.add(cat);
-                else selectedCategories.delete(cat);
+                if (cb.checked) {
+                    selectedCategories.add(cat);
+                } else {
+                    selectedCategories.delete(cat);
+                }
             });
-            isInitialLoad = false;
+
             applyFilters();
         });
 
@@ -1253,7 +1275,6 @@
             if (preset) {
                 selectedDuration = preset.seconds;
                 durationValue.textContent = preset.label;
-                isInitialLoad = false;
                 if (selectedCategories.size > 0) {
                     applyFilters();
                 }
@@ -1262,24 +1283,18 @@
 
         // ====== RESET FILTERS ======
         document.getElementById('reset-filters').addEventListener('click', function() {
-            document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => cb.checked = false);
-            selectedCategories.clear();
+            // Resetar para o estado inicial: todas as categorias (exceto audiobook) marcadas
+            selectedCategories = new Set(ALL_CATEGORIES_EXCEPT_AUDIOBOOK);
+            document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => {
+                const cat = cb.dataset.category;
+                cb.checked = selectedCategories.has(cat);
+            });
+
             durationSlider.value = durationPresets.length - 1;
             selectedDuration = Infinity;
             durationValue.textContent = '∞ Unlimited';
-            isInitialLoad = true;
-            filteredVideos = [];
-            hasActiveFilters = false;
-            updateUI();
-            stopPlayer();
-        });
 
-        window.addEventListener('resize', function() {
-            if (window.innerWidth <= 768 && !soundActivated && messageActive) {
-                document.getElementById('audio-toggle').style.display = 'block';
-            } else if (window.innerWidth > 768 || soundActivated) {
-                document.getElementById('audio-toggle').style.display = 'none';
-            }
+            applyFilters();
         });
     </script>
 
