@@ -295,7 +295,7 @@
 
         <!-- ABOUT BUTTON -->
         <div class="button-wrapper">
-            <a href="about.html" id="about-button">🏛️ About & Credits</a>
+            <a href="about.html" id="about-button">About & Credits</a>
         </div>
 
         <!-- MOBILE AUDIO BUTTON -->
@@ -328,9 +328,10 @@
         })();
 
         // ====== DAY SCHEDULE ======
-        // 6 playlist slots for each day of the week
-        // Leave empty string "" for unused slots
-        // Only the playlist ID is needed (not the full URL)
+        // Each day has 6 slots. Each slot can have multiple video IDs separated by "/"
+        // Use "/" to separate video IDs within a slot
+        // Example: "ODxpHPiF2IU/1kfxiX5aIZc/GYGXYYOp4as/Wx3c4AjAO58"
+        // The "/TROCA/" is just a visual marker in your description, not used in the code
 
         const schedule = {
             // Sunday
@@ -343,12 +344,12 @@
             3: ["", "", "", "", "", ""],
             // Thursday
             4: [
-                "PLGr-y_RTcNnv14zEh_rYVBrQLYL0SyZho",
-                "PLGr-y_RTcNnsmduQh9L60psB1k2XTXUdA",
-                "",
-                "",
-                "",
-                ""
+                "ODxpHPiF2IU",           // Slot 1 - Video 1
+                "1kfxiX5aIZc",           // Slot 2 - Video 2
+                "GYGXYYOp4as",           // Slot 3 - Video 3
+                "Wx3c4AjAO58",           // Slot 4 - Video 4
+                "ODxpHPiF2IU/1kfxiX5aIZc/GYGXYYOp4as", // Slot 5 - Multiple videos
+                ""                       // Slot 6 - Empty
             ],
             // Friday
             5: ["", "", "", "", "", ""],
@@ -356,48 +357,60 @@
             6: ["", "", "", "", "", ""]
         };
 
-        // ====== FUNCTION TO FILTER EMPTY PLAYLISTS ======
-        function getValidPlaylists(day) {
-            const allPlaylists = schedule[day] || [];
-            return allPlaylists.filter(id => id && id.trim() !== "");
+        // ====== FUNCTION TO FILTER EMPTY SLOTS ======
+        function getValidSlots(day) {
+            const allSlots = schedule[day] || [];
+            return allSlots.filter(slot => slot && slot.trim() !== "");
         }
 
-        // ====== GET TODAY'S PLAYLISTS ======
-        const today = new Date().getDay();
-        const playlistsForToday = getValidPlaylists(today);
+        // ====== FUNCTION TO PARSE VIDEO SLOT ======
+        function parseVideoSlot(slot) {
+            // Split by "/" and filter out empty strings
+            return slot.split('/').filter(id => id.trim() !== "");
+        }
 
-        console.log(`📋 Valid playlists for today: ${playlistsForToday.length}`);
+        // ====== GET TODAY'S SCHEDULE ======
+        const today = new Date().getDay();
+        const validSlots = getValidSlots(today);
+
+        console.log(`📋 Valid slots for today: ${validSlots.length}`);
+
+        // Flatten all videos from all slots into a single array
+        let allVideos = [];
+        validSlots.forEach(slot => {
+            const videos = parseVideoSlot(slot);
+            allVideos = allVideos.concat(videos);
+        });
+
+        console.log(`🎬 Total videos for today: ${allVideos.length}`);
 
         // ====== PLAYER VARIABLES ======
-        let currentPlaylistIndex = 0;
+        let currentVideoIndex = 0;
         let player;
         let messageActive = false;
         let statusOriginal = '';
         let soundActivated = false;
-        let isTransitioning = false; // Prevent multiple transitions
+        let isTransitioning = false;
 
-        // ====== FUNCTION TO LOAD NEXT PLAYLIST ======
-        function loadNextPlaylist() {
-            if (playlistsForToday.length === 0) {
-                console.warn('⚠️ No playlists scheduled for today.');
+        // ====== FUNCTION TO LOAD NEXT VIDEO ======
+        function loadNextVideo() {
+            if (allVideos.length === 0) {
+                console.warn('⚠️ No videos scheduled for today.');
                 document.getElementById('status').innerHTML = '⏸ <span>●</span> NO CONTENT TODAY';
                 return;
             }
 
-            // Get current playlist ID
-            const playlistId = playlistsForToday[currentPlaylistIndex];
+            // Get current video ID
+            const videoId = allVideos[currentVideoIndex];
 
-            console.log(`🎬 Loading playlist ${currentPlaylistIndex + 1}/${playlistsForToday.length}: ${playlistId}`);
+            console.log(`🎬 Loading video ${currentVideoIndex + 1}/${allVideos.length}: ${videoId}`);
 
-            // Load playlist in player
+            // Load video in player
             if (player) {
                 isTransitioning = true;
-                player.loadPlaylist({
-                    list: playlistId,
-                    listType: 'playlist'
-                });
+                player.loadVideoById(videoId);
                 player.playVideo();
-                
+
                 // Reset transitioning flag after a short delay
                 setTimeout(() => {
                     isTransitioning = false;
@@ -413,39 +426,39 @@
             }
         }
 
-        // ====== FUNCTION TO ADVANCE TO NEXT PLAYLIST ======
-        function advanceToNextPlaylist() {
+        // ====== FUNCTION TO ADVANCE TO NEXT VIDEO ======
+        function advanceToNextVideo() {
             // Prevent multiple simultaneous transitions
             if (isTransitioning) {
                 console.log('⏳ Transition already in progress, skipping...');
                 return;
             }
 
-            // Move to next playlist
-            currentPlaylistIndex++;
+            // Move to next video
+            currentVideoIndex++;
 
-            // If we've played all playlists, loop back to the first
-            if (currentPlaylistIndex >= playlistsForToday.length) {
-                currentPlaylistIndex = 0;
-                console.log('🔄 All playlists finished. Looping back to first.');
+            // If we've played all videos, loop back to the first
+            if (currentVideoIndex >= allVideos.length) {
+                currentVideoIndex = 0;
+                console.log('🔄 All videos finished. Looping back to first.');
             }
 
-            // Load the next playlist
-            loadNextPlaylist();
+            // Load the next video
+            loadNextVideo();
         }
 
         // ====== YOUTUBE IFrame API ======
         function onYouTubeIframeAPIReady() {
-            if (playlistsForToday.length === 0) {
-                // If no playlists, show a message
+            if (allVideos.length === 0) {
                 document.getElementById('status').innerHTML = '⏸ <span>●</span> NO CONTENT TODAY';
                 return;
             }
 
-            // Create player with first playlist
+            // Create player with first video
             player = new YT.Player('player', {
                 width: '560',
                 height: '315',
+                videoId: allVideos[0],
                 playerVars: {
                     autoplay: 1,
                     controls: 1,
@@ -455,9 +468,7 @@
                     iv_load_policy: 3,
                     cc_load_policy: 0,
                     fs: 1,
-                    playsinline: 1,
-                    list: playlistsForToday[0],
-                    listType: 'playlist'
+                    playsinline: 1
                 },
                 events: {
                     'onStateChange': onPlayerStateChange,
@@ -473,15 +484,15 @@
                 statusOriginal = statusElement.innerHTML;
             }
 
-            console.log(`✅ Player initialized with playlist 1/${playlistsForToday.length}`);
+            console.log(`✅ Player initialized with video 1/${allVideos.length}`);
         }
 
         // ====== PLAYER STATE CHANGE ======
         function onPlayerStateChange(event) {
-            // When playlist ends, move to next playlist
+            // When video ends, move to next video
             if (event.data === YT.PlayerState.ENDED) {
-                console.log('📯 Playlist ended. Advancing to next...');
-                advanceToNextPlaylist();
+                console.log('📯 Video ended. Advancing to next...');
+                advanceToNextVideo();
             }
 
             // When video starts playing
@@ -508,14 +519,13 @@
         function onPlayerError(event) {
             console.log('⚠️ Player error:', event.data);
 
-            // Try to advance to next playlist on error
             if (!messageActive) {
-                document.getElementById('status').innerHTML = '⚠️ <span>●</span> ERROR - Next playlist...';
+                document.getElementById('status').innerHTML = '⚠️ <span>●</span> ERROR - Next video...';
                 document.getElementById('status').className = '';
             }
 
             setTimeout(() => {
-                advanceToNextPlaylist();
+                advanceToNextVideo();
             }, 3000);
         }
 
@@ -566,7 +576,6 @@
                 button.classList.add('muted');
             }
 
-            // After 15 seconds, return to normal
             setTimeout(() => {
                 returnToNormal();
             }, 15000);
