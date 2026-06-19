@@ -163,6 +163,30 @@
             flex: 1;
         }
 
+        /* ===== SELECT ALL BUTTON ===== */
+        #select-all-btn {
+            width: 100%;
+            padding: 8px 0;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            background: transparent;
+            border: 1px solid rgba(200, 0, 0, 0.3);
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: 'Cinzel', serif;
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #select-all-btn:hover {
+            background: rgba(200, 0, 0, 0.15);
+            border-color: #dc143c;
+            color: #dc143c;
+        }
+
         /* ===== DURATION SLIDER ===== */
         #duration-section {
             margin-top: 16px;
@@ -660,6 +684,9 @@
                 </div>
             </div>
 
+            <!-- Select All Button -->
+            <button id="select-all-btn">☑ Select All Categories</button>
+
             <!-- Duration Slider -->
             <div id="duration-section">
                 <label>⏱ Max Duration</label>
@@ -720,23 +747,37 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
-        // ====== HARDCODED VIDEOLIST (direto no código, sem depender de TXT) ======
-        const videoList = [
-            { url: "https://www.youtube.com/watch?v=yDFAikbi0wE", videoId: "yDFAikbi0wE", creator: "HeleenUytterhoeven(Heloon)", duration: "2m59s", durationSeconds: 179, categories: ["cover"] },
-            { url: "https://www.youtube.com/watch?v=SfiwOMzFfSM", videoId: "SfiwOMzFfSM", creator: "HeleenUytterhoeven(Heloon)", duration: "3m1s", durationSeconds: 181, categories: ["cover"] },
-            { url: "https://www.youtube.com/watch?v=LUhd4GzJvmg", videoId: "LUhd4GzJvmg", creator: "VAERKO", duration: "3m22s", durationSeconds: 202, categories: ["musicother"] },
-            { url: "https://www.youtube.com/watch?v=PZu6QOottK4", videoId: "PZu6QOottK4", creator: "LectionesAntiquae", duration: "49m26s", durationSeconds: 2966, categories: ["audiobook"] },
-            { url: "https://www.youtube.com/watch?v=1kfxiX5aIZc", videoId: "1kfxiX5aIZc", creator: "Ianthis", duration: "1m33s", durationSeconds: 93, categories: ["sungpoetry"] },
-            { url: "https://www.youtube.com/watch?v=HKdoM35oJCA", videoId: "HKdoM35oJCA", creator: "Ianthis", duration: "1m38s", durationSeconds: 98, categories: ["sungpoetry"] },
-            { url: "https://www.youtube.com/watch?v=nihv4HWHVVY", videoId: "nihv4HWHVVY", creator: "Salve,Latina!", duration: "3m42s", durationSeconds: 222, categories: ["audiobook", "proseepistolary"] },
-            { url: "https://www.youtube.com/watch?v=Xg0TyMElq8s", videoId: "Xg0TyMElq8s", creator: "ScorpioMartianus", duration: "1m11s", durationSeconds: 71, categories: ["recitedpoetry"] },
-            { url: "https://www.youtube.com/watch?v=46xqOsG_r5A", videoId: "46xqOsG_r5A", creator: "Ianthis", duration: "2m5s", durationSeconds: 125, categories: ["sungpoetry"] },
-            { url: "https://www.youtube.com/watch?v=1FzdlwOWoJc", videoId: "1FzdlwOWoJc", creator: "Canta el Aedo", duration: "4m18s", durationSeconds: 258, categories: ["cover"] },
-            { url: "https://www.youtube.com/watch?v=aDA-6hX11xc", videoId: "aDA-6hX11xc", creator: "tyrtarion-Topic", duration: "3m18s", durationSeconds: 198, categories: ["recitedpoetry"] },
-            { url: "https://www.youtube.com/watch?v=912wxUW0nhk", videoId: "912wxUW0nhk", creator: "tyrtarion-Topic", duration: "1m16s", durationSeconds: 76, categories: ["audiobook"] },
-            { url: "https://www.youtube.com/watch?v=U-jH5VgV3VI", videoId: "U-jH5VgV3VI", creator: "tyrtarion-Topic", duration: "2m33s", durationSeconds: 153, categories: ["musicother"] },
-            { url: "https://www.youtube.com/watch?v=_uJIfiQzjAQ", videoId: "_uJIfiQzjAQ", creator: "tyrtarion-Topic", duration: "2m1s", durationSeconds: 121, categories: ["sungpoetry"] }
-        ];
+        // ============================================================
+        // 📋 VIDEOLIST - Edite aqui!
+        // ============================================================
+        // Formato: URL |@Criador|Duração|categoria1|categoria2|...
+        // Exemplo: https://www.youtube.com/watch?v=XXXXX |@Nome|2m30s|cover|
+        // ============================================================
+
+        const RAW_VIDEO_LIST = `
+        https://www.youtube.com/watch?v=PZu6QOottK4 |@LectionesAntiquae|49m26s|audiobook|
+        https://www.youtube.com/watch?v=Ezt3tMoi3as |@FaryaFaraji&WorldMusicians|5m6s|musicother|
+        https://www.youtube.com/watch?v=yDFAikbi0wE |@HeleenUytterhoeven(Heloon)|2m59s|cover|
+        https://www.youtube.com/watch?v=SfiwOMzFfSM |@HeleenUytterhoeven(Heloon)|3m1s|cover|
+        https://www.youtube.com/watch?v=LUhd4GzJvmg |@VAERKO|3m22s|musicother|
+        https://www.youtube.com/watch?v=1kfxiX5aIZc |@Ianthis|1m33s|sungpoetry|
+        https://www.youtube.com/watch?v=HKdoM35oJCA |@Ianthis|1m38s|sungpoetry|
+        https://www.youtube.com/watch?v=nihv4HWHVVY |@Salve,Latina!|3m42s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=KE7FvMsd__c |@Salve,Latina!|4m6s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=IXVN_bV3_0M |@Salve,Latina!|4m2s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=G-q3CROLPmY |@Salve,Latina!|6m11s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=a9IeN-X3ntU |@Salve,Latina!|5m0s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=xu9ituEbBZ8 |@Salve,Latina!|4m3s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=kMNcL1yBho0 |@Salve,Latina!|8m0s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=09inde1LBic |@Salve,Latina!|6m14s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=8iMRPo7_3UA |@Salve,Latina!|14m44s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=qGQqxeiqMl0 |@Salve,Latina!|4m0s|audiobook|proseepistolary|
+        https://www.youtube.com/watch?v=Xg0TyMElq8s |@ScorpioMartianus|1m11s|recitedpoetry|
+        `;
+
+        // ============================================================
+        // 🚀 CÓDIGO - Não mexa a menos que saiba o que está fazendo
+        // ============================================================
 
         // ====== RANDOM BACKGROUND ======
         (function() {
@@ -748,14 +789,56 @@
                 "background5.jpg",
                 "background6.jpg"
             ];
-
             const randomIndex = Math.floor(Math.random() * backgrounds.length);
-            const chosenImage = backgrounds[randomIndex];
-
-            document.body.style.backgroundImage = `url("${chosenImage}")`;
-
-            console.log(`🎨 Background selected: ${chosenImage} (${randomIndex + 1}/6)`);
+            document.body.style.backgroundImage = `url("${backgrounds[randomIndex]}")`;
+            console.log(`🎨 Background: ${backgrounds[randomIndex]}`);
         })();
+
+        // ====== PARSE DURATION ======
+        function parseDuration(str) {
+            const match = str.match(/(?:(\d+)m)?(?:(\d+)s)?/);
+            if (!match) return 0;
+            return (parseInt(match[1]) || 0) * 60 + (parseInt(match[2]) || 0);
+        }
+
+        // ====== EXTRACT VIDEO ID ======
+        function extractVideoId(url) {
+            const match = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+            return match ? match[1] : null;
+        }
+
+        // ====== PARSE RAW VIDEO LIST ======
+        function parseRawVideoList(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const videos = [];
+            for (const line of lines) {
+                const parts = line.split('|').map(p => p.trim());
+                if (parts.length < 4) continue;
+                const url = parts[0];
+                const creator = parts[1].replace('@', '');
+                const durationStr = parts[2];
+                const categories = [];
+                for (let i = 3; i < parts.length; i++) {
+                    if (parts[i]) categories.push(parts[i]);
+                }
+                const videoId = extractVideoId(url);
+                if (videoId) {
+                    videos.push({
+                        url: url,
+                        videoId: videoId,
+                        creator: creator,
+                        duration: durationStr,
+                        durationSeconds: parseDuration(durationStr),
+                        categories: categories
+                    });
+                }
+            }
+            return videos;
+        }
+
+        // ====== VIDEO LIST ======
+        const videoList = parseRawVideoList(RAW_VIDEO_LIST);
+        console.log(`📋 Loaded ${videoList.length} videos`);
 
         // ====== DURATION PRESETS ======
         const durationPresets = [
@@ -782,8 +865,9 @@
         let messageActive = false;
         let statusOriginal = '';
         let soundActivated = false;
+        let isInitialLoad = true;
 
-        // ====== SHUFFLE ARRAY ======
+        // ====== SHUFFLE ======
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -792,34 +876,22 @@
             return array;
         }
 
-        // ====== SAVE / LOAD RESUME STATE ======
+        // ====== SAVE / LOAD RESUME ======
         const STORAGE_KEY = 'roma_tv_resume';
         const todayDate = new Date().toDateString();
 
-        function saveProgress(videoIndex, currentTime) {
+        function saveProgress(index, time) {
             try {
-                const data = {
-                    index: videoIndex,
-                    time: Math.floor(currentTime || 0),
-                    date: todayDate
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                console.log(`💾 Progress saved: video ${videoIndex + 1}, time ${data.time}s, date ${data.date}`);
-            } catch (e) {
-                console.warn('Could not save progress:', e);
-            }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ index, time: Math.floor(time || 0), date: todayDate }));
+            } catch (e) { console.warn('Could not save progress:', e); }
         }
 
         function loadProgress() {
             try {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (!raw) return null;
-                const data = JSON.parse(raw);
-                return data;
-            } catch (e) {
-                console.warn('Could not load progress:', e);
-                return null;
-            }
+                return JSON.parse(raw);
+            } catch (e) { return null; }
         }
 
         // ====== APPLY FILTERS ======
@@ -827,7 +899,11 @@
             const hasCategoryFilter = selectedCategories.size > 0;
             const hasDurationFilter = selectedDuration !== Infinity;
 
-            if (!hasCategoryFilter) {
+            // Always exclude audiobooks on initial load
+            if (isInitialLoad) {
+                filteredVideos = videoList.filter(v => !v.categories.includes('audiobook'));
+                isInitialLoad = false;
+            } else if (!hasCategoryFilter) {
                 filteredVideos = videoList.filter(video => {
                     if (hasDurationFilter && !video.categories.includes('audiobook')) {
                         if (video.durationSeconds > selectedDuration) return false;
@@ -838,17 +914,14 @@
                 filteredVideos = videoList.filter(video => {
                     const matchesCategory = video.categories.some(cat => selectedCategories.has(cat));
                     if (!matchesCategory) return false;
-
                     if (hasDurationFilter && !video.categories.includes('audiobook')) {
                         if (video.durationSeconds > selectedDuration) return false;
                     }
-
                     return true;
                 });
             }
 
             shuffleArray(filteredVideos);
-
             console.log(`📊 Filtered: ${filteredVideos.length} videos`);
 
             if (filteredVideos.length === 0) {
@@ -858,13 +931,24 @@
                 return;
             }
 
-            currentFilteredIndex = 0;
-            updateUI();
-
-            if (playerReady && player) {
-                loadFilteredVideo(0);
+            // Restore saved progress if same day and no category filters active
+            if (selectedCategories.size === 0) {
+                const saved = loadProgress();
+                if (saved && saved.date === todayDate && saved.index < filteredVideos.length) {
+                    currentFilteredIndex = saved.index;
+                    console.log(`🔄 Restoring progress: video ${saved.index + 1}`);
+                } else {
+                    currentFilteredIndex = 0;
+                }
             } else {
-                window.pendingVideoIndex = 0;
+                currentFilteredIndex = 0;
+            }
+
+            updateUI();
+            if (playerReady && player) {
+                loadFilteredVideo(currentFilteredIndex);
+            } else {
+                window.pendingVideoIndex = currentFilteredIndex;
             }
         }
 
@@ -885,51 +969,36 @@
                 document.getElementById('status').innerHTML = '⏸ <span>●</span> NO VIDEOS MATCH FILTERS';
                 return;
             }
-
             if (index < 0) index = filteredVideos.length - 1;
             if (index >= filteredVideos.length) index = 0;
-
             currentFilteredIndex = index;
             const video = filteredVideos[currentFilteredIndex];
-
             document.getElementById('video-counter').textContent = currentFilteredIndex + 1;
             document.getElementById('total-counter').textContent = filteredVideos.length;
-
-            console.log(`🎬 Loading video: ${video.videoId}`);
-
+            console.log(`🎬 Loading: ${video.videoId}`);
             if (playerReady && player) {
                 player.loadVideoById(video.videoId);
                 player.playVideo();
             } else {
                 window.pendingVideoIndex = currentFilteredIndex;
-                // Try to initialize player if not ready
-                if (!player) {
-                    initPlayer();
-                }
+                if (!player) initPlayer();
             }
-
-            const statusElement = document.getElementById('status');
             if (!messageActive) {
-                statusElement.innerHTML = '▶ <span>●</span> PLAYING';
-                statusElement.className = '';
-                statusOriginal = statusElement.innerHTML;
+                document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
+                document.getElementById('status').className = '';
+                statusOriginal = '▶ <span>●</span> PLAYING';
             }
         }
 
-        // ====== LOAD NEXT / PREVIOUS ======
-        function loadNextFilteredVideo() {
-            if (filteredVideos.length === 0) return;
-            if (playerReady && player) saveCurrentProgress();
-            loadFilteredVideo(currentFilteredIndex + 1);
-        }
+        // ====== NAVIGATION ======
+        function loadNext() { if (filteredVideos.length === 0) return;
+            saveCurrentProgress();
+            loadFilteredVideo(currentFilteredIndex + 1); }
 
-        function loadPreviousFilteredVideo() {
-            if (filteredVideos.length === 0) return;
-            if (playerReady && player) saveCurrentProgress();
-            loadFilteredVideo(currentFilteredIndex - 1);
-        }
+        function loadPrev() { if (filteredVideos.length === 0) return;
+            saveCurrentProgress();
+            loadFilteredVideo(currentFilteredIndex - 1); }
 
-        // ====== SAVE CURRENT PROGRESS ======
         function saveCurrentProgress() {
             if (playerReady && player && player.getCurrentTime) {
                 saveProgress(currentFilteredIndex, player.getCurrentTime());
@@ -940,35 +1009,19 @@
 
         // ====== INIT PLAYER ======
         function initPlayer() {
-            if (filteredVideos.length === 0) {
-                console.warn('No videos to play');
-                return;
-            }
-
+            if (filteredVideos.length === 0) return;
             const videoId = filteredVideos[0].videoId;
-            console.log(`🎬 Initializing player with: ${videoId}`);
-
             if (player) {
                 player.loadVideoById(videoId);
                 player.playVideo();
                 return;
             }
-
             player = new YT.Player('player', {
                 width: '560',
                 height: '315',
                 videoId: videoId,
-                playerVars: {
-                    autoplay: 1,
-                    controls: 1,
-                    rel: 0,
-                    mute: 1,
-                    modestbranding: 1,
-                    iv_load_policy: 3,
-                    cc_load_policy: 0,
-                    fs: 1,
-                    playsinline: 1
-                },
+                playerVars: { autoplay: 1, controls: 1, rel: 0, mute: 1, modestbranding: 1, iv_load_policy: 3,
+                    cc_load_policy: 0, fs: 1, playsinline: 1 },
                 events: {
                     'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange,
@@ -977,22 +1030,20 @@
             });
         }
 
-        // ====== YOUTUBE IFrame API ======
+        // ====== YOUTUBE EVENTS ======
         function onYouTubeIframeAPIReady() {
-            console.log('🎬 YouTube API loaded!');
+            console.log('🎬 YouTube API ready');
             applyFilters();
             initPlayer();
         }
 
-        // ====== PLAYER READY ======
-        function onPlayerReady(event) {
+        function onPlayerReady() {
             playerReady = true;
-            console.log('✅ Player is ready!');
-
+            console.log('✅ Player ready');
             if (window.pendingVideoIndex !== undefined && window.pendingVideoIndex !== null) {
-                const index = window.pendingVideoIndex;
-                if (index < filteredVideos.length) {
-                    const video = filteredVideos[index];
+                const idx = window.pendingVideoIndex;
+                if (idx < filteredVideos.length) {
+                    const video = filteredVideos[idx];
                     if (video) {
                         player.loadVideoById(video.videoId);
                         player.playVideo();
@@ -1000,18 +1051,14 @@
                 }
                 window.pendingVideoIndex = undefined;
             }
-
-            const statusElement = document.getElementById('status');
             if (!messageActive) {
-                statusElement.innerHTML = '▶ <span>●</span> PLAYING';
-                statusElement.className = '';
-                statusOriginal = statusElement.innerHTML;
+                document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
+                document.getElementById('status').className = '';
+                statusOriginal = '▶ <span>●</span> PLAYING';
             }
-
-            setTimeout(() => saveCurrentProgress(), 3000);
+            setTimeout(saveCurrentProgress, 3000);
         }
 
-        // ====== PLAYER STATE CHANGE ======
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.PLAYING) {
                 if (!messageActive) {
@@ -1020,13 +1067,11 @@
                     statusOriginal = '▶ <span>●</span> PLAYING';
                 }
             }
-
             if (event.data === YT.PlayerState.ENDED) {
-                console.log('📯 Video ended. Advancing...');
+                console.log('📯 Video ended');
                 saveCurrentProgress();
-                loadNextFilteredVideo();
+                loadNext();
             }
-
             if (event.data === YT.PlayerState.PAUSED) {
                 if (!messageActive) {
                     document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
@@ -1036,42 +1081,37 @@
             }
         }
 
-        // ====== PLAYER ERROR ======
         function onPlayerError(event) {
             console.log('⚠️ Player error:', event.data);
             if (!messageActive) {
                 document.getElementById('status').innerHTML = '⚠️ <span>●</span> ERROR - Next...';
                 document.getElementById('status').className = '';
             }
-            setTimeout(() => {
-                saveCurrentProgress();
-                loadNextFilteredVideo();
-            }, 3000);
+            setTimeout(() => { saveCurrentProgress();
+                loadNext(); }, 3000);
         }
 
-        // ====== ACTIVATE AUDIO ======
+        // ====== AUDIO ======
         function activateAudio() {
             if (playerReady && player && !soundActivated) {
                 player.unMute();
                 soundActivated = true;
                 document.getElementById('audio-toggle').classList.add('audio-activated');
                 document.getElementById('audio-toggle').style.display = 'none';
-
                 const statusElement = document.getElementById('status');
                 statusElement.innerHTML = '🔊 <span>●</span> AUDIO ENABLED';
                 statusElement.className = 'audio-message';
-
                 setTimeout(() => {
                     if (!messageActive) {
                         statusElement.innerHTML = '▶ <span>●</span> PLAYING';
                         statusElement.className = '';
                     }
                 }, 2000);
-                console.log('✅ Audio activated!');
+                console.log('✅ Audio activated');
             }
         }
 
-        // ====== SHOW AUDIO MESSAGE ======
+        // ====== AUDIO MESSAGE ======
         function showAudioMessage() {
             messageActive = true;
             const statusElement = document.getElementById('status');
@@ -1079,20 +1119,15 @@
             statusElement.innerHTML = '🔊 <span>●</span> ENABLE AUDIO ON PLAYER';
             statusElement.className = 'audio-message';
             document.title = '🔊 ENABLE AUDIO ON PLAYER';
-
-            const titleElement = document.getElementById('titulo');
-            titleElement.innerHTML = '🔊 <span>ENABLE</span> AUDIO';
-            titleElement.className = 'audio-message';
-
+            document.getElementById('titulo').innerHTML = '🔊 <span>ENABLE</span> AUDIO';
+            document.getElementById('titulo').className = 'audio-message';
             if (window.innerWidth <= 768) {
                 document.getElementById('audio-toggle').style.display = 'block';
                 document.getElementById('audio-toggle').classList.add('muted');
             }
-
             setTimeout(returnToNormal, 15000);
         }
 
-        // ====== RETURN TO NORMAL ======
         function returnToNormal() {
             messageActive = false;
             document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
@@ -1100,18 +1135,11 @@
             document.title = 'Roma Invicta TV';
             document.getElementById('titulo').innerHTML = '<span>Roma</span> Invicta TV';
             document.getElementById('titulo').className = '';
-
-            if (soundActivated) {
-                document.getElementById('audio-toggle').style.display = 'none';
-            }
-
+            if (soundActivated) document.getElementById('audio-toggle').style.display = 'none';
             if (playerReady && player && player.getPlayerState) {
                 const state = player.getPlayerState();
-                if (state === YT.PlayerState.PLAYING) {
-                    document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
-                } else if (state === YT.PlayerState.PAUSED) {
-                    document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
-                }
+                if (state === YT.PlayerState.PLAYING) document.getElementById('status').innerHTML = '▶ <span>●</span> PLAYING';
+                else if (state === YT.PlayerState.PAUSED) document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
             }
         }
 
@@ -1124,25 +1152,18 @@
         });
         container.addEventListener("mouseleave", () => {
             clearTimeout(mouseTimer);
-            mouseTimer = setTimeout(() => {
-                container.classList.add("oculto");
-            }, 2000);
+            mouseTimer = setTimeout(() => container.classList.add("oculto"), 2000);
         });
 
-        // ====== INITIALIZE ======
+        // ====== INIT ======
         window.addEventListener('load', function() {
             applyFilters();
-            if (!player) {
-                initPlayer();
-            }
+            if (!player) initPlayer();
             setTimeout(showAudioMessage, 1500);
         });
 
-        // ====== SAVE PROGRESS REGULARLY ======
         setInterval(() => {
-            if (playerReady && player && player.getCurrentTime) {
-                saveCurrentProgress();
-            }
+            if (playerReady && player && player.getCurrentTime) saveCurrentProgress();
         }, 5000);
 
         window.addEventListener('beforeunload', () => {
@@ -1150,17 +1171,15 @@
         });
 
         // ====== NAVIGATION BUTTONS ======
-        document.getElementById('next-button').addEventListener('click', loadNextFilteredVideo);
-        document.getElementById('prev-button').addEventListener('click', loadPreviousFilteredVideo);
-
+        document.getElementById('next-button').addEventListener('click', loadNext);
+        document.getElementById('prev-button').addEventListener('click', loadPrev);
         document.getElementById('audio-toggle').addEventListener('click', activateAudio);
 
-        // ====== KEYBOARD SHORTCUTS ======
         document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowRight') { e.preventDefault();
-                loadNextFilteredVideo(); }
+                loadNext(); }
             if (e.key === 'ArrowLeft') { e.preventDefault();
-                loadPreviousFilteredVideo(); }
+                loadPrev(); }
         });
 
         // ====== SIDEBAR COLLAPSE ======
@@ -1174,27 +1193,44 @@
             });
         });
 
-        // ====== CATEGORY FILTER EVENTS ======
-        document.querySelectorAll('.category-item input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const category = this.dataset.category;
-                if (this.checked) selectedCategories.add(category);
-                else selectedCategories.delete(category);
+        // ====== CATEGORY FILTER ======
+        document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const cat = this.dataset.category;
+                if (this.checked) selectedCategories.add(cat);
+                else selectedCategories.delete(cat);
+                // Reset initial load flag so audiobooks can appear if selected
+                isInitialLoad = false;
                 applyFilters();
                 if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
             });
         });
 
+        // ====== SELECT ALL ======
+        document.getElementById('select-all-btn').addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.category-item input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+                const cat = cb.dataset.category;
+                if (cb.checked) selectedCategories.add(cat);
+                else selectedCategories.delete(cat);
+            });
+            isInitialLoad = false;
+            applyFilters();
+            if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
+        });
+
         // ====== DURATION FILTER ======
         const durationSlider = document.getElementById('duration-slider');
         const durationValue = document.getElementById('duration-value');
-
         durationSlider.addEventListener('input', function() {
-            const index = parseInt(this.value);
-            const preset = durationPresets[index];
+            const idx = parseInt(this.value);
+            const preset = durationPresets[idx];
             if (preset) {
                 selectedDuration = preset.seconds;
                 durationValue.textContent = preset.label;
+                isInitialLoad = false;
                 applyFilters();
                 if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
             }
@@ -1207,6 +1243,7 @@
             durationSlider.value = durationPresets.length - 1;
             selectedDuration = Infinity;
             durationValue.textContent = '∞ Unlimited';
+            isInitialLoad = true;
             applyFilters();
             if (filteredVideos.length > 0 && playerReady) loadFilteredVideo(0);
         });
