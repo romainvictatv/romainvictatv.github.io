@@ -748,10 +748,10 @@
 
     <script>
         // ============================================================
-        // 📋 VIDEOLIST - Edite aqui!
+        // 📋 VIDEOLISTA - Edit here!
         // ============================================================
-        // Formato: URL |@Criador|Duração|categoria1|categoria2|...
-        // Exemplo: https://www.youtube.com/watch?v=XXXXX |@Nome|2m30s|cover|
+        // Example: https://www.youtube.com/watch?v=XXXXX
+        // Exemplo: https://www.youtube.com/watch?v=XXXXX |@name|2m30s|cover|
         // ============================================================
 
         const RAW_VIDEO_LIST = `
@@ -844,7 +844,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
         `;
 
         // ============================================================
-        // 🚀 CÓDIGO - Não mexa a menos que saiba o que está fazendo
+        // 🚀 CODE - Don't touch unless you know what you're doing.
         // ============================================================
 
         // ====== RANDOM BACKGROUND ======
@@ -980,7 +980,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
         function applyFilters() {
             const hasCategoryFilter = selectedCategories.size > 0;
 
-            // Se não há categorias selecionadas, para o player
+            // If no categories are selected, for the player
             if (!hasCategoryFilter) {
                 filteredVideos = [];
                 hasActiveFilters = false;
@@ -993,12 +993,12 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
 
             hasActiveFilters = true;
 
-            // Filtrar vídeos pelas categorias selecionadas
+            // Filter videos by selected categories.
             filteredVideos = videoList.filter(video => {
                 const matchesCategory = video.categories.some(cat => selectedCategories.has(cat));
                 if (!matchesCategory) return false;
 
-                // Filtro de duração (audiobook ignora)
+                // Duration filter (audiobook ignores)
                 if (selectedDuration !== Infinity && !video.categories.includes('audiobook')) {
                     if (video.durationSeconds > selectedDuration) return false;
                 }
@@ -1006,7 +1006,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
                 return true;
             });
 
-            // Se não houver vídeos, para o player
+            // If there are no videos, for the player
             if (filteredVideos.length === 0) {
                 filteredVideos = [];
                 hasActiveFilters = false;
@@ -1017,10 +1017,10 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
                 return;
             }
 
-            // Embaralhar
+            // 
             shuffleArray(filteredVideos);
 
-            // Verificar se o índice atual é válido
+            // 
             if (currentFilteredIndex >= filteredVideos.length) {
                 currentFilteredIndex = 0;
             }
@@ -1028,7 +1028,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
             console.log(`📊 Filtered: ${filteredVideos.length} videos`);
             updateUI();
 
-            // Carregar o primeiro vídeo
+            // 
             if (playerReady && player) {
                 loadFilteredVideo(currentFilteredIndex);
             } else {
@@ -1123,7 +1123,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
         function onYouTubeIframeAPIReady() {
             console.log('🎬 YouTube API ready');
 
-            // Carregar todos os vídeos exceto audiobooks
+            // 
             const initialVideos = getAllVideosExcludingAudiobooks();
 
             if (initialVideos.length === 0) {
@@ -1134,7 +1134,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
                 return;
             }
 
-            // Embaralhar a lista completa
+            // 
             shuffleArray(initialVideos);
             filteredVideos = initialVideos;
             hasActiveFilters = true;
@@ -1149,7 +1149,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
 
             console.log(`🎬 Starting with ${filteredVideos.length} random videos (excluding audiobooks)`);
 
-            // Carregar o primeiro vídeo
+            // 
             if (playerReady && player) {
                 loadFilteredVideo(0);
             } else {
@@ -1362,7 +1362,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
 
         // ====== RESET FILTERS ======
         document.getElementById('reset-filters').addEventListener('click', function() {
-            // Desmarcar todos os checkboxes
+            // 
             document.querySelectorAll('.category-item input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
@@ -1373,7 +1373,7 @@ https://www.youtube.com/watch?v=DppEufIT7Vg |@FaryaFaraji&WorldMusicians|25m16s|
             selectedDuration = Infinity;
             durationValue.textContent = '∞ Unlimited';
 
-            // Voltar para o estado inicial: vídeos aleatórios (excluindo audiobooks)
+            // 
             const initialVideos = getAllVideosExcludingAudiobooks();
             if (initialVideos.length > 0) {
                 shuffleArray(initialVideos);
