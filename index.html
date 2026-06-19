@@ -433,8 +433,9 @@
 
         // ====== DAY SCHEDULE ======
         // Each day has 6 slots. Each slot can have multiple video IDs separated by "/"
-        // Use "/" to separate video IDs within a slot
-        // The "/TROCA/" is just a visual marker in your description, not used in the code
+        // Format: "VIDEO_ID+START_TIME" to start at a specific second
+        // Example: "1FzdlwOWoJc+16" starts at 16 seconds
+        // Example: "ODxpHPiF2IU" starts at 0 seconds (default)
 
         const schedule = {
             // Sunday
@@ -455,7 +456,7 @@
                 ""
             ],
             // Friday
-            5: ["w1K0xqxl7Bo/3z_QAPB3XeA/1FzdlwOWoJc", "", "", "", "", ""],
+            5: ["w1K0xqxl7Bo/3z_QAPB3XeA/1FzdlwOWoJc+16/1FzdlwOWoJc", "", "", "", "", ""],
             // Saturday
             6: ["", "", "", "", "", ""]
         };
@@ -471,17 +472,31 @@
             return slot.split('/').filter(id => id.trim() !== "");
         }
 
+        // ====== FUNCTION TO EXTRACT VIDEO ID AND START TIME ======
+        function parseVideoEntry(entry) {
+            const parts = entry.split('+');
+            const videoId = parts[0];
+            const startTime = parts[1] ? parseInt(parts[1], 10) : 0;
+            return { videoId, startTime };
+        }
+
         // ====== GET TODAY'S SCHEDULE ======
         const today = new Date().getDay();
         const validSlots = getValidSlots(today);
 
         console.log(`📋 Valid slots for today: ${validSlots.length}`);
 
-        // Flatten all videos from all slots into a single array
+        // Flatten all videos from all slots into a single array with start times
         let allVideos = [];
+        let allStartTimes = [];
+
         validSlots.forEach(slot => {
-            const videos = parseVideoSlot(slot);
-            allVideos = allVideos.concat(videos);
+            const entries = parseVideoSlot(slot);
+            entries.forEach(entry => {
+                const { videoId, startTime } = parseVideoEntry(entry);
+                allVideos.push(videoId);
+                allStartTimes.push(startTime);
+            });
         });
 
         console.log(`🎬 Total videos for today: ${allVideos.length}`);
@@ -493,6 +508,7 @@
         let statusOriginal = '';
         let soundActivated = false;
         let isTransitioning = false;
+        let hasSeeked = false; // Flag to prevent multiple seeks
 
         // ====== FUNCTION TO LOAD SPECIFIC VIDEO ======
         function loadVideo(index) {
@@ -511,13 +527,20 @@
 
             currentVideoIndex = index;
             const videoId = allVideos[currentVideoIndex];
+            const startTime = allStartTimes[currentVideoIndex] || 0;
 
-            console.log(`🎬 Loading video ${currentVideoIndex + 1}/${allVideos.length}: ${videoId}`);
+            console.log(`🎬 Loading video ${currentVideoIndex + 1}/${allVideos.length}: ${videoId} (start: ${startTime}s)`);
 
             if (player) {
                 isTransitioning = true;
+                hasSeeked = false;
                 player.loadVideoById(videoId);
                 player.playVideo();
+
+                // If there's a start time, seek to it when video starts playing
+                if (startTime > 0) {
+                    // We'll handle the seek in onPlayerStateChange
+                }
 
                 setTimeout(() => {
                     isTransitioning = false;
@@ -549,6 +572,8 @@
                 return;
             }
 
+            const firstStartTime = allStartTimes[0] || 0;
+
             player = new YT.Player('player', {
                 width: '560',
                 height: '315',
@@ -562,7 +587,8 @@
                     iv_load_policy: 3,
                     cc_load_policy: 0,
                     fs: 1,
-                    playsinline: 1
+                    playsinline: 1,
+                    start: firstStartTime // YouTube native start parameter
                 },
                 events: {
                     'onStateChange': onPlayerStateChange,
@@ -577,17 +603,22 @@
                 statusOriginal = statusElement.innerHTML;
             }
 
-            console.log(`✅ Player initialized with video 1/${allVideos.length}`);
+            console.log(`✅ Player initialized with video 1/${allVideos.length} (start: ${firstStartTime}s)`);
         }
 
         // ====== PLAYER STATE CHANGE ======
         function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.ENDED) {
-                console.log('📯 Video ended. Advancing to next...');
-                loadNextVideo();
-            }
-
+            // When video starts playing, seek to start time if needed
             if (event.data === YT.PlayerState.PLAYING) {
+                const startTime = allStartTimes[currentVideoIndex] || 0;
+
+                // If there's a start time and we haven't seeked yet
+                if (startTime > 0 && !hasSeeked) {
+                    hasSeeked = true;
+                    player.seekTo(startTime, true);
+                    console.log(`⏩ Seeking to ${startTime}s`);
+                }
+
                 if (!messageActive) {
                     const statusElement = document.getElementById('status');
                     statusElement.innerHTML = '▶ <span>●</span> PLAYING';
@@ -596,6 +627,13 @@
                 }
             }
 
+            // When video ends, advance to next
+            if (event.data === YT.PlayerState.ENDED) {
+                console.log('📯 Video ended. Advancing to next...');
+                loadNextVideo();
+            }
+
+            // When paused
             if (event.data === YT.PlayerState.PAUSED) {
                 if (!messageActive) {
                     document.getElementById('status').innerHTML = '⏸ <span>●</span> PAUSED';
@@ -747,7 +785,7 @@
             }
         });
 
-        // ====== KEYBOARD SHORTCUTS (optional) ======
+        // ====== KEYBOARD SHORTCUTS ======
         document.addEventListener('keydown', function(e) {
             if (e.key === 'ArrowRight') {
                 e.preventDefault();
